@@ -5,18 +5,59 @@ import { FC, useEffect, useState } from "react"
 import styles from "../styles/custom.module.css"
 
 export const FetchCandyMachine: FC = () => {
-  const [candyMachineAddress, setCandyMachineAddress] = useState(null)
+  const [candyMachineAddress, setCandyMachineAddress] = useState("5xXa7M1uqezNggw3SuwejwhVo6Dzgtz87hGguhKMNWS")
   const [candyMachineData, setCandyMachineData] = useState(null)
   const [pageItems, setPageItems] = useState(null)
   const [page, setPage] = useState(1)
 
-  const fetchCandyMachine = async () => {}
+  const { connection} = useConnection()
+  const metaplex = Metaplex.make(connection)
+  const fetchCandyMachine = async () => {
+    console.log("fetching candy machine")
+    console.log(pageItems)
+    if (pageItems)
+    console.log(pageItems[0])
+    setPage(1)
+    try {
+      const candyMachine = await metaplex.candyMachines().findByAddress({ address: new PublicKey(candyMachineAddress )}).run()
+      setCandyMachineData(candyMachine)
+    } catch (e) {
+      alert!("Please submit a valid CMv2 address")
+    }
+  }
 
-  const getPage = async (page, perPage) => {}
+  const getPage = async (page, perPage) => {
+    const pageItems = candyMachineData.items.slice((page-1)*perPage, page*perPage)
+    let nftData = []
+    for (let i=0; i<pageItems.length; i++) {
+      let fetchResult = await fetch(pageItems[i].uri)
+      let json = await fetchResult.json()
+      nftData.push(json)
+    }
+    setPageItems(nftData)
+  }
 
-  const prev = async () => {}
+  const prev = async () => {
+    if (page > 1) {
+      setPage(page-1)
+    }
+    console.log("clicked prev")
+  }
 
-  const next = async () => {}
+  const next = async () => {
+    setPage(page+1)
+    console.log("clicked next")
+  }
+
+  useEffect(() => {
+    fetchCandyMachine()
+  }, [])
+  useEffect(() => {
+    if (!candyMachineData) {
+      return
+    }
+    getPage(page, 9)
+  }, [candyMachineData, page])
 
   return (
     <div>
@@ -42,8 +83,8 @@ export const FetchCandyMachine: FC = () => {
       {pageItems && (
         <div>
           <div className={styles.gridNFT}>
-            {pageItems.map((nft) => (
-              <div>
+            {pageItems.map((nft, index) => (
+              <div key={index}>
                 <ul>{nft.name}</ul>
                 <img src={nft.image} />
               </div>

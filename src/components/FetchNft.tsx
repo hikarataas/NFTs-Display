@@ -4,7 +4,39 @@ import { FC, useEffect, useState } from "react"
 import styles from "../styles/custom.module.css"
 
 export const FetchNft: FC = () => {
-  const fetchNfts = async () => {}
+  const [nftData, setNftData] = useState(null)
+  const { connection } = useConnection()
+  const wallet = useWallet()
+  const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet))
+  const fetchNfts = async () => {
+    if (!wallet.connected) {
+      return
+    }
+    const nfts = await metaplex.nfts().findAllByOwner({ owner: wallet.publicKey}).run()
 
-  return <div></div>
+    let nftData = []
+    for(let i=0; i<nfts.length; i++) {
+      let fetchResult = await fetch(nfts[i].uri)
+      let json = await fetchResult.json()
+      nftData.push(json)
+    }
+    setNftData(nftData)
+  }
+
+  useEffect(() => {
+    fetchNfts()
+  }, [wallet])
+
+  return <div>
+          {nftData && (
+        <div className={styles.gridNFT}>
+          {nftData.map((nft, index) => (
+            <div key={index}>
+              <ul>{nft.name}</ul>
+              <img src={nft.image} />
+            </div>
+          ))}
+        </div>
+      )}
+  </div>
 }
